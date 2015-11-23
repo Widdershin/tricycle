@@ -24,8 +24,16 @@ export default function Scratchpad (DOM, props) {
 
     const context = {div, Observable};
 
+    const wrappedCode = `
+try {
+  ${code}
+} catch (e) {
+  console.trace(e);
+}
+    `;
+
     try {
-      vm.runInNewContext(code, context);
+      vm.runInNewContext(wrappedCode, context);
     } catch (e) {
       console.trace(e);
     }
