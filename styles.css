@@ -1,7 +1,7 @@
 html, body {
   margin: 0;
 
- height: 100%;
+  height: 100%;
 }
 
 .scratchpad {
@@ -18,8 +18,30 @@ html, body {
   width: 50%;
 
   padding: 0px 5px;
+
+  margin: 0px;
+  border: 0px;
+  border-right: 1px solid gray;
+}
+
+.result-container {
+  width: 50%;
+
+  display: flex;
+
+  flex-direction: column;
 }
 
 .result {
-  width: 50%;
+  padding: 5px;
+
+  flex-grow: 1;
+}
+
+.error {
+  border-top: 1px solid gray;
+
+  padding: 5px;
+
+  background: #BBB;
 }
