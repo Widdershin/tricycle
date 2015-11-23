@@ -5,19 +5,11 @@ import {Observable} from 'rx';
 import Scratchpad from './src/scratchpad';
 
 const startingCode = `
-import {run} from '@cycle/core';
-import {makeDOMDriver, div} from '@cycle/dom';
-import {Observable} from 'rx';
-
-function main ({DOM}) {
+function main () {
   return {
-    DOM: div('.hello-world', 'Hello world!')
+    DOM: Observable.just(div('.hello-world', 'Hello world!'))
   };
 }
-
-run(main, {
-  DOM: makeDOMDriver('.app')
-});
 `;
 
 function main ({DOM}) {
