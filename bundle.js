@@ -16664,11 +16664,16 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function Scratchpad(DOM, props) {
   var sources = undefined,
       sinks = undefined;
+
   var code$ = DOM.select('.code').events('input').debounce(300).map(function (ev) {
     return ev.target.value;
   }).map(function (code) {
     return { code: code };
   });
+
+  var error$ = new _rx.Subject();
+
+  error$.forEach(console.log.bind(console));
 
   props.delay(100).merge(code$).forEach(function (_ref) {
     var code = _ref.code;
@@ -16681,14 +16686,14 @@ function Scratchpad(DOM, props) {
       sinks.dispose();
     }
 
-    var context = { div: _dom.div, Observable: _rx.Observable };
+    var context = { div: _dom.div, Observable: _rx.Observable, error$: error$ };
 
-    var wrappedCode = '\ntry {\n  ' + code + '\n} catch (e) {\n  console.trace(e);\n}\n    ';
+    var wrappedCode = '\ntry {\n  ' + code + '\n\n  error$.onNext(\'\');\n} catch (e) {\n  error$.onNext(e);\n}     ';
 
     try {
       _vm2.default.runInNewContext(wrappedCode, context);
     } catch (e) {
-      console.trace(e);
+      error$.onNext(e);
     }
 
     console.log(code);
@@ -16708,12 +16713,14 @@ function Scratchpad(DOM, props) {
   });
 
   return {
-    DOM: props.map(_view2.default)
+    DOM: props.combineLatest(error$.startWith('')).map(_view2.default)
   };
 }
 
 },{"./scratchpad/view":67,"@cycle/core":2,"@cycle/dom":3,"rx":65,"vm":63}],67:[function(require,module,exports){
 'use strict';
+
+var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; })();
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -16722,8 +16729,13 @@ exports.default = scratchpadView;
 
 var _dom = require('@cycle/dom');
 
-function scratchpadView(props) {
-  return (0, _dom.div)('.scratchpad', [(0, _dom.textarea)('.code', { value: props.code }), (0, _dom.div)('.result')]);
+function scratchpadView(_ref) {
+  var _ref2 = _slicedToArray(_ref, 2);
+
+  var props = _ref2[0];
+  var error = _ref2[1];
+
+  return (0, _dom.div)('.scratchpad', [(0, _dom.textarea)('.code', { value: props.code }), (0, _dom.div)('.result-container', [(0, _dom.div)('.result'), (0, _dom.div)('.error', error.toString())])]);
 }
 
 },{"@cycle/dom":3}]},{},[1]);
