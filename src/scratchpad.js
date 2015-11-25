@@ -1,22 +1,41 @@
 import {run} from '@cycle/core';
 import {Observable, Subject} from 'rx';
 import {makeDOMDriver, div} from '@cycle/dom';
+import ace from 'brace';
+import 'brace/mode/javascript';
+import 'brace/theme/monokai';
 
 import view from './scratchpad/view';
 
 import vm from 'vm';
 
+function startAceEditor (code$) {
+  function updateCode (editor) {
+    return (_, ev) => {
+      code$.onNext({code: editor.getSession().getValue()});
+    };
+  }
+
+  return ({code}) => {
+    var editor = ace.edit('editor');
+    editor.getSession().setMode('ace/mode/javascript');
+    editor.setTheme('ace/theme/monokai');
+    editor.setValue(code);
+    editor.clearSelection();
+    editor.on('input', updateCode(editor));
+  };
+}
+
 export default function Scratchpad (DOM, props) {
   let sources, sinks;
 
-  const code$ = DOM.select('.code').events('input')
-    .debounce(300)
-    .map(ev => ev.target.value)
-    .map(code => ({code}));
+  const code$ = new Subject();
 
   const error$ = new Subject();
 
-  error$.forEach(console.log.bind(console))
+  error$.forEach(console.log.bind(console));
+
+  props.delay(100).subscribe(startAceEditor(code$));
 
   props.delay(100).merge(code$).forEach(({code}) => {
     if (sources) {
@@ -44,7 +63,7 @@ try {
       error$.onNext(e);
     }
 
-    console.log(code);
+    console.log("running cycle app with", code);
 
     if (typeof context.main !== 'function') {
       return;
