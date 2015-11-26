@@ -1,6 +1,7 @@
 import {run} from '@cycle/core';
+import {makeDOMDriver, h, div} from '@cycle/dom';
 import {Observable, Subject} from 'rx';
-import {makeDOMDriver, div} from '@cycle/dom';
+const babel = require('babel-core');
 import ace from 'brace';
 import 'brace/mode/javascript';
 import 'brace/theme/monokai';
@@ -8,6 +9,17 @@ import 'brace/theme/monokai';
 import view from './scratchpad/view';
 
 import vm from 'vm';
+
+function transformES6 (error$) {
+  return ({code}) => {
+    try {
+      return babel.transform(code);
+    } catch (e) {
+      error$.onNext(e);
+      return {code: ''};
+    }
+  };
+}
 
 function startAceEditor (code$) {
   function updateCode (editor) {
@@ -41,7 +53,7 @@ export default function Scratchpad (DOM, props) {
 
   props.delay(100).subscribe(startAceEditor(code$));
 
-  props.delay(100).merge(code$).forEach(({code}) => {
+  props.merge(code$).debounce(100).map(transformES6(error$)).forEach(({code}) => {
     if (sources) {
       sources.dispose();
     }
@@ -50,7 +62,7 @@ export default function Scratchpad (DOM, props) {
       sinks.dispose();
     }
 
-    const context = {div, Observable, error$};
+    const context = {div, h, Observable, error$};
 
     const wrappedCode = `
       try {
@@ -78,10 +90,18 @@ export default function Scratchpad (DOM, props) {
       DOM: makeDOMDriver('.result')
     };
 
-    const userApp = run(context.main, userDrivers);
+    let userApp;
 
-    sources = userApp.sources;
-    sinks = userApp.sinks;
+    try {
+      userApp = run(context.main, userDrivers);
+    } catch (e) {
+      error$.onNext(e);
+    }
+
+    if (userApp) {
+      sources = userApp.sources;
+      sinks = userApp.sinks;
+    }
   });
 
   return {
