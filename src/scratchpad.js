@@ -20,6 +20,10 @@ function startAceEditor (code$) {
     var editor = ace.edit('editor');
     editor.getSession().setMode('ace/mode/javascript');
     editor.setTheme('ace/theme/monokai');
+    editor.getSession().setOptions({
+      tabSize: 2
+    });
+
     editor.setValue(code);
     editor.clearSelection();
     editor.on('input', updateCode(editor));
@@ -49,13 +53,14 @@ export default function Scratchpad (DOM, props) {
     const context = {div, Observable, error$};
 
     const wrappedCode = `
-try {
-  ${code}
+      try {
+        ${code}
 
-  error$.onNext('');
-} catch (e) {
-  error$.onNext(e);
-}     `;
+        error$.onNext('');
+      } catch (e) {
+        error$.onNext(e);
+      }
+    `;
 
     try {
       vm.runInNewContext(wrappedCode, context);
@@ -63,7 +68,7 @@ try {
       error$.onNext(e);
     }
 
-    console.log("running cycle app with", code);
+    console.log('running cycle app with', code);
 
     if (typeof context.main !== 'function') {
       return;
