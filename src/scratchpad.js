@@ -103,7 +103,7 @@ export default function Scratchpad (DOM, props) {
     let userApp;
 
     try {
-      userApp = run(context.main, context.drivers);
+      userApp = run(context.main, context.sources);
     } catch (e) {
       error$.onNext(e);
     }
