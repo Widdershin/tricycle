@@ -11,7 +11,7 @@ export default function scratchpadView ([props, error]) {
       div('.code', {id: 'editor', value: props.code}),
 
       div('.result-container', [
-        div('.result'),
+        div('.app'),
         div('.error', error.toString())
       ])
     ])

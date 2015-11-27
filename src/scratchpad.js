@@ -100,14 +100,10 @@ export default function Scratchpad (DOM, props) {
       return;
     }
 
-    const userDrivers = {
-      DOM: makeDOMDriver('.result')
-    };
-
     let userApp;
 
     try {
-      userApp = run(context.main, userDrivers);
+      userApp = run(context.main, context.drivers);
     } catch (e) {
       error$.onNext(e);
     }

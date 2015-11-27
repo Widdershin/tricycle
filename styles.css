@@ -12,7 +12,7 @@ html, body {
   height: 100%;
 }
 
-.app {
+.tricycle {
   height: 100%;
 }
 
@@ -34,7 +34,7 @@ html, body {
   flex-direction: column;
 }
 
-.result {
+.app {
   padding: 5px;
 
   flex-grow: 1;
