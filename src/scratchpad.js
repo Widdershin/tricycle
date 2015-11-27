@@ -5,15 +5,20 @@ const babel = require('babel-core');
 import ace from 'brace';
 import 'brace/mode/javascript';
 import 'brace/theme/monokai';
+import 'brace/keybinding/vim';
+
+import _ from 'lodash';
 
 import view from './scratchpad/view';
+
+import es2015 from 'babel-preset-es2015';
 
 import vm from 'vm';
 
 function transformES6 (error$) {
   return ({code}) => {
     try {
-      return babel.transform(code);
+      return babel.transform(code, {presets: [es2015]});
     } catch (e) {
       error$.onNext(e);
       return {code: ''};
@@ -29,7 +34,7 @@ function startAceEditor (code$) {
   }
 
   return ({code}) => {
-    var editor = ace.edit('editor');
+    window.editor = ace.edit('editor');
     editor.getSession().setMode('ace/mode/javascript');
     editor.setTheme('ace/theme/monokai');
     editor.getSession().setOptions({
@@ -53,6 +58,15 @@ export default function Scratchpad (DOM, props) {
 
   props.delay(100).subscribe(startAceEditor(code$));
 
+  DOM.select('.vim-checkbox').events('change')
+    .map(ev => ev.target.checked ? 'ace/keyboard/vim' : null)
+    .startWith(null)
+    .forEach(keyHandler => {
+      if (window.editor) {
+        window.editor.setKeyboardHandler(keyHandler);
+      }
+    });
+
   props.merge(code$).debounce(100).map(transformES6(error$)).forEach(({code}) => {
     if (sources) {
       sources.dispose();
@@ -62,7 +76,7 @@ export default function Scratchpad (DOM, props) {
       sinks.dispose();
     }
 
-    const context = {div, h, Observable, error$};
+    const context = {error$, require};
 
     const wrappedCode = `
       try {
