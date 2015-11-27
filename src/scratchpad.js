@@ -5,6 +5,7 @@ const babel = require('babel-core');
 import ace from 'brace';
 import 'brace/mode/javascript';
 import 'brace/theme/monokai';
+import 'brace/keybinding/vim';
 
 import _ from 'lodash';
 
@@ -31,7 +32,7 @@ function startAceEditor (code$) {
   }
 
   return ({code}) => {
-    var editor = ace.edit('editor');
+    window.editor = ace.edit('editor');
     editor.getSession().setMode('ace/mode/javascript');
     editor.setTheme('ace/theme/monokai');
     editor.getSession().setOptions({
@@ -54,6 +55,15 @@ export default function Scratchpad (DOM, props) {
   error$.forEach(console.log.bind(console));
 
   props.delay(100).subscribe(startAceEditor(code$));
+
+  DOM.select('.vim-checkbox').events('change')
+    .map(ev => ev.target.checked ? 'ace/keyboard/vim' : null)
+    .startWith(null)
+    .forEach(keyHandler => {
+      if (window.editor) {
+        window.editor.setKeyboardHandler(keyHandler);
+      }
+    });
 
   props.merge(code$).debounce(100).map(transformES6(error$)).forEach(({code}) => {
     if (sources) {
