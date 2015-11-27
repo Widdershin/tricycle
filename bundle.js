@@ -13,7 +13,7 @@ var _scratchpad2 = _interopRequireDefault(_scratchpad);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var startingCode = '\nconst Cycle = require(\'@cycle/core\');\nconst {makeDOMDriver, div} = require(\'@cycle/dom\');\nconst _ = require(\'lodash\');\nconst {Observable} = require(\'rx\');\n\n\nfunction main ({DOM}) {\n  return {\n    DOM: Observable.just(div(\'.hello-world\', \'Hello world!\'))\n  };\n}\n\n// Normally you need to call Cycle.run, but Tricycle handles that for you!\n// If you want to try this out locally, just uncomment this code.\n//\n// Cycle.run(main, {\n//  DOM: makeDOMDriver(\'.app\')\n// });\n';
+var startingCode = '\nconst Cycle = require(\'@cycle/core\');\nconst {makeDOMDriver, div} = require(\'@cycle/dom\');\nconst _ = require(\'lodash\');\nconst {Observable} = require(\'rx\');\n\n\nfunction main ({DOM}) {\n  return {\n    DOM: Observable.just(div(\'.hello-world\', \'Hello world!\'))\n  };\n}\n\nconst drivers = {\n  DOM: makeDOMDriver(\'.app\')\n}\n\n// Normally you need to call Cycle.run, but Tricycle handles that for you!\n// If you want to try this out locally, just uncomment this code.\n//\n// Cycle.run(main, drivers);\n';
 
 function main(_ref) {
   var DOM = _ref.DOM;
@@ -27,7 +27,7 @@ function main(_ref) {
 }
 
 (0, _core.run)(main, {
-  DOM: (0, _dom.makeDOMDriver)('.app')
+  DOM: (0, _dom.makeDOMDriver)('.tricycle')
 });
 
 },{"./src/scratchpad":2676,"@cycle/core":2,"@cycle/dom":3,"rx":2675}],2:[function(require,module,exports){
@@ -106455,14 +106455,10 @@ function Scratchpad(DOM, props) {
       return;
     }
 
-    var userDrivers = {
-      DOM: (0, _dom.makeDOMDriver)('.result')
-    };
-
     var userApp = undefined;
 
     try {
-      userApp = (0, _core.run)(context.main, userDrivers);
+      userApp = (0, _core.run)(context.main, context.drivers);
     } catch (e) {
       error$.onNext(e);
     }
@@ -106496,7 +106492,7 @@ function scratchpadView(_ref) {
   var props = _ref2[0];
   var error = _ref2[1];
 
-  return (0, _dom.div)('.scratchpad', [(0, _dom.div)('.vim-support', [(0, _dom.div)('vim mode'), (0, _dom.input)('.vim-checkbox', { type: 'checkbox' })]), (0, _dom.div)('.code', { id: 'editor', value: props.code }), (0, _dom.div)('.result-container', [(0, _dom.div)('.result'), (0, _dom.div)('.error', error.toString())])]);
+  return (0, _dom.div)('.scratchpad', [(0, _dom.div)('.vim-support', [(0, _dom.div)('vim mode'), (0, _dom.input)('.vim-checkbox', { type: 'checkbox' })]), (0, _dom.div)('.code', { id: 'editor', value: props.code }), (0, _dom.div)('.result-container', [(0, _dom.div)('.app'), (0, _dom.div)('.error', error.toString())])]);
 }
 
 },{"@cycle/dom":3}]},{},[1]);
