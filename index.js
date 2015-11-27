@@ -17,12 +17,14 @@ function main ({DOM}) {
   };
 }
 
+const drivers = {
+  DOM: makeDOMDriver('.app')
+}
+
 // Normally you need to call Cycle.run, but Tricycle handles that for you!
 // If you want to try this out locally, just uncomment this code.
 //
-// Cycle.run(main, {
-//  DOM: makeDOMDriver('.app')
-// });
+// Cycle.run(main, drivers);
 `;
 
 function main ({DOM}) {
@@ -35,5 +37,5 @@ function main ({DOM}) {
 }
 
 run(main, {
-  DOM: makeDOMDriver('.app')
+  DOM: makeDOMDriver('.tricycle')
 });
