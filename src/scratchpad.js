@@ -6,6 +6,8 @@ import ace from 'brace';
 import 'brace/mode/javascript';
 import 'brace/theme/monokai';
 
+import _ from 'lodash';
+
 import view from './scratchpad/view';
 
 import vm from 'vm';
@@ -62,7 +64,7 @@ export default function Scratchpad (DOM, props) {
       sinks.dispose();
     }
 
-    const context = {div, h, Observable, error$};
+    const context = {error$, require};
 
     const wrappedCode = `
       try {

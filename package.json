@@ -27,6 +27,7 @@
     "@cycle/core": "^6.0.0-rc2",
     "@cycle/dom": "^8.0.0-rc2",
     "brace": "^0.5.1",
+    "lodash": "^3.10.1",
     "rx": "^4.0.7"
   },
   "devDependencies": {

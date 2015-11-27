@@ -5,6 +5,11 @@ import {Observable} from 'rx';
 import Scratchpad from './src/scratchpad';
 
 const startingCode = `
+const {div} = require('@cycle/dom');
+const _ = require('lodash');
+const {Observable} = require('rx');
+
+
 function main () {
   return {
     DOM: Observable.just(div('.hello-world', 'Hello world!'))
