@@ -11,12 +11,14 @@ import _ from 'lodash';
 
 import view from './scratchpad/view';
 
+import es2015 from 'babel-preset-es2015';
+
 import vm from 'vm';
 
 function transformES6 (error$) {
   return ({code}) => {
     try {
-      return babel.transform(code);
+      return babel.transform(code, {presets: [es2015]});
     } catch (e) {
       error$.onNext(e);
       return {code: ''};
