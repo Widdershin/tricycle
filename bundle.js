@@ -13,7 +13,7 @@ var _scratchpad2 = _interopRequireDefault(_scratchpad);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var startingCode = '\nconst Cycle = require(\'@cycle/core\');\nconst {makeDOMDriver, div} = require(\'@cycle/dom\');\nconst _ = require(\'lodash\');\nconst {Observable} = require(\'rx\');\n\n\nfunction main ({DOM}) {\n  return {\n    DOM: Observable.just(div(\'.hello-world\', \'Hello world!\'))\n  };\n}\n\nconst drivers = {\n  DOM: makeDOMDriver(\'.app\')\n}\n\n// Normally you need to call Cycle.run, but Tricycle handles that for you!\n// If you want to try this out locally, just uncomment this code.\n//\n// Cycle.run(main, drivers);\n';
+var startingCode = '\nconst Cycle = require(\'@cycle/core\');\nconst {makeDOMDriver, div} = require(\'@cycle/dom\');\nconst _ = require(\'lodash\');\nconst {Observable} = require(\'rx\');\n\n\nfunction main ({DOM}) {\n  return {\n    DOM: Observable.just(div(\'.hello-world\', \'Hello world!\'))\n  };\n}\n\nconst sources = {\n  DOM: makeDOMDriver(\'.app\')\n}\n\n// Normally you need to call Cycle.run, but Tricycle handles that for you!\n// If you want to try this out locally, just uncomment this code.\n//\n// Cycle.run(main, sources);\n';
 
 function main(_ref) {
   var DOM = _ref.DOM;
@@ -106458,7 +106458,7 @@ function Scratchpad(DOM, props) {
     var userApp = undefined;
 
     try {
-      userApp = (0, _core.run)(context.main, context.drivers);
+      userApp = (0, _core.run)(context.main, context.sources);
     } catch (e) {
       error$.onNext(e);
     }
