@@ -2,7 +2,7 @@
   "name": "trycycle",
   "version": "0.0.1",
   "description": "A scratchpad for trying out Cycle.js",
-  "main": "index.js",
+  "main": "src/scratchpad.js",
   "scripts": {
     "start": "babel-node server.js",
     "test": "mocha --compilers js:babel-core/register"
