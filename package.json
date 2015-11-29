@@ -2,10 +2,16 @@
   "name": "tricycle",
   "version": "0.0.1",
   "description": "A scratchpad for trying out Cycle.js",
-  "main": "src/scratchpad.js",
+  "main": "lib/scratchpad.js",
+  "files": [
+    "lib/"
+  ],
   "scripts": {
     "start": "babel-node server.js",
-    "test": "mocha --compilers js:babel-core/register"
+    "test": "mocha --compilers js:babel-core/register",
+    "precompile-lib": "rm -rf lib/ && mkdir -p lib",
+    "compile-lib": "babel src -d lib",
+    "prepublish": "npm run compile-lib"
   },
   "repository": {
     "type": "git",
