@@ -1,5 +1,5 @@
 {
-  "name": "trycycle",
+  "name": "tricycle",
   "version": "0.0.1",
   "description": "A scratchpad for trying out Cycle.js",
   "main": "src/scratchpad.js",
