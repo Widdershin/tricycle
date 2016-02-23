@@ -1,11 +1,17 @@
 {
-  "name": "trycycle",
+  "name": "tricycle",
   "version": "0.0.1",
   "description": "A scratchpad for trying out Cycle.js",
-  "main": "index.js",
+  "main": "lib/scratchpad.js",
+  "files": [
+    "lib/"
+  ],
   "scripts": {
     "start": "babel-node server.js",
     "test": "mocha --compilers js:babel-core/register",
+    "precompile-lib": "rm -rf lib/ && mkdir -p lib",
+    "compile-lib": "babel src -d lib",
+    "prepublish": "npm run compile-lib",
     "bundle": "browserify index.js -o bundle.js -t babelify"
   },
   "repository": {
@@ -27,14 +33,15 @@
   "dependencies": {
     "@cycle/core": "^6.0.0-rc2",
     "@cycle/dom": "^8.0.0-rc2",
+    "babel-core": "^6.2.1",
+    "babel-preset-es2015": "^6.1.18",
     "brace": "^0.5.1",
+    "cycle-restart": "0.0.11",
     "lodash": "^3.10.1",
-    "rx": "^4.0.7",
-    "babel-preset-es2015": "^6.1.18"
+    "rx": "^4.0.7"
   },
   "devDependencies": {
     "babel-cli": "^6.2.0",
-    "babel-core": "^6.2.1",
     "babelify": "^7.2.0",
     "browserify": "^12.0.1",
     "budo": "^6.0.4",
