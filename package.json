@@ -35,7 +35,7 @@
     "babel-core": "^6.2.1",
     "babel-preset-es2015": "^6.1.18",
     "brace": "^0.5.1",
-    "cycle-restart": "0.0.11",
+    "cycle-restart": "0.0.12",
     "lodash": "^3.10.1",
     "rx": "^4.0.7"
   },

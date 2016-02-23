@@ -88,7 +88,7 @@ export default function Scratchpad (DOM, props) {
       sinks.dispose();
     }
 
-    const context = {error$, require};
+    const context = {error$, require, console};
 
     const wrappedCode = `
       try {
