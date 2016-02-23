@@ -1,24 +1,39 @@
 import {run} from '@cycle/core';
 import {makeDOMDriver, div} from '@cycle/dom';
 import {Observable} from 'rx';
+import {restartable} from 'cycle-restart';
 
 import Scratchpad from './src/scratchpad';
 
 const startingCode = `
 const Cycle = require('@cycle/core');
-const {makeDOMDriver, div} = require('@cycle/dom');
+const {makeDOMDriver, div, button} = require('@cycle/dom');
 const _ = require('lodash');
 const {Observable} = require('rx');
-
+const {restartable} = require('cycle-restart');
 
 function main ({DOM}) {
+  const add$ = DOM
+    .select('.add')
+    .events('click')
+    .map(ev => 1);
+
+  const count$ = add$
+    .startWith(0)
+    .scan((total, change) => total + change)
+
   return {
-    DOM: Observable.just(div('.hello-world', 'Hello world!'))
+    DOM: count$.map(count =>
+      div('.counter', [
+        'Count: ' + count,
+        button('.add', 'Add')
+      ])
+    )
   };
 }
 
 const sources = {
-  DOM: makeDOMDriver('.app')
+  DOM: restartable(makeDOMDriver('.app'), {pauseSinksOnReplay: false})
 }
 
 // Normally you need to call Cycle.run, but Tricycle handles that for you!

@@ -1,6 +1,8 @@
 import {run} from '@cycle/core';
 import {makeDOMDriver, h, div} from '@cycle/dom';
 import {Observable, Subject} from 'rx';
+import {restart, restartable} from 'cycle-restart';
+
 const babel = require('babel-core');
 import ace from 'brace';
 import 'brace/mode/javascript';
@@ -48,7 +50,7 @@ function startAceEditor (code$) {
 }
 
 export default function Scratchpad (DOM, props) {
-  let sources, sinks;
+  let sources, sinks, drivers;
 
   const code$ = new Subject();
 
@@ -67,7 +69,7 @@ export default function Scratchpad (DOM, props) {
       }
     });
 
-  props.merge(code$).debounce(100).map(transformES6(error$)).forEach(({code}) => {
+  props.merge(code$).debounce(300).map(transformES6(error$)).forEach(({code}) => {
     if (sources) {
       sources.dispose();
     }
@@ -94,16 +96,24 @@ export default function Scratchpad (DOM, props) {
       error$.onNext(e);
     }
 
-    console.log('running cycle app with', code);
-
-    if (typeof context.main !== 'function') {
+    if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
       return;
     }
 
     let userApp;
 
+    if (!drivers) {
+      drivers = context.sources;
+    }
+
     try {
-      userApp = run(context.main, context.sources);
+      if (sources) {
+        console.log('restarting');
+        userApp = restart(context.main, drivers, {sources, sinks})
+      } else {
+        console.log('starting');
+        userApp = run(context.main, context.sources);
+      }
     } catch (e) {
       error$.onNext(e);
     }
