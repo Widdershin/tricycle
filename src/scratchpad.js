@@ -118,10 +118,8 @@ export default function Scratchpad (DOM, props) {
 
     try {
       if (sources && restartEnabled) {
-        console.log('restarting');
         userApp = restart(context.main, drivers, {sources, sinks})
       } else {
-        console.log('starting');
         userApp = run(context.main, context.sources);
       }
     } catch (e) {
