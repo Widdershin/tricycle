@@ -77940,7 +77940,7 @@ function restart(main, drivers, _ref) {
     });
 
     scheduler.start();
-  });
+  }, 1);
 
   return newSourcesAndSinks;
 }
@@ -78166,7 +78166,6 @@ function restartable(driver) {
       var timeToResetTo = arguments.length <= 2 || arguments[2] === undefined ? null : arguments[2];
 
       newLog$.take(1).subscribe(function (newLog) {
-        console.log("log", newLog);
         function scheduleEvent(historicEvent) {
           scheduler.scheduleAbsolute({}, historicEvent.time, function () {
             streams[historicEvent.identifier].onNext(historicEvent.event);
@@ -78188,7 +78187,6 @@ function restartable(driver) {
 
   return replayable(restartableDriver);
 }
-
 },{"rx":2677}],2570:[function(require,module,exports){
 /**
  * Creates an array with all falsey values removed. The values `false`, `null`,
@@ -106774,7 +106772,7 @@ function Scratchpad(DOM, props) {
       sinks.dispose();
     }
 
-    var context = { error$: error$, require: require };
+    var context = { error$: error$, require: require, console: console };
 
     var wrappedCode = '\n      try {\n        ' + code + '\n\n        error$.onNext(\'\');\n      } catch (e) {\n        error$.onNext(e);\n      }\n    ';
 
