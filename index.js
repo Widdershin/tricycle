@@ -32,8 +32,11 @@ function main ({DOM}) {
   };
 }
 
+// This looks a little different than normal. It's to enable support for cycle-restart,
+// which automatically plays back your actions when the code reloads.
+// See https://github.com/Widdershin/cycle-restart for more info
 const sources = {
-  DOM: restartable(makeDOMDriver('.app'), {pauseSinksOnReplay: false})
+  DOM: restartable(makeDOMDriver('.app'), {pauseSinksWhileReplaying: false})
 }
 
 // Normally you need to call Cycle.run, but Tricycle handles that for you!

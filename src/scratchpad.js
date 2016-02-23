@@ -69,7 +69,17 @@ export default function Scratchpad (DOM, props) {
       }
     });
 
-  props.merge(code$).debounce(300).map(transformES6(error$)).forEach(({code}) => {
+  const restartEnabled$ = DOM.select('.instant-checkbox').events('change')
+    .map(ev => ev.target.checked)
+    .startWith(true);
+
+  props.merge(code$)
+    .debounce(300)
+    .map(transformES6(error$))
+    .withLatestFrom(restartEnabled$, (props, restartEnabled) => [props, restartEnabled])
+    .forEach(([{code}, restartEnabled]) => runOrRestart(code, restartEnabled))
+
+  function runOrRestart(code, restartEnabled) {
     if (sources) {
       sources.dispose();
     }
@@ -107,7 +117,7 @@ export default function Scratchpad (DOM, props) {
     }
 
     try {
-      if (sources) {
+      if (sources && restartEnabled) {
         console.log('restarting');
         userApp = restart(context.main, drivers, {sources, sinks})
       } else {
@@ -122,7 +132,7 @@ export default function Scratchpad (DOM, props) {
       sources = userApp.sources;
       sinks = userApp.sinks;
     }
-  });
+  };
 
   return {
     DOM: props.combineLatest(error$.startWith('')).map(view)
