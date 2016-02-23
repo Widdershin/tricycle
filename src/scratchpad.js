@@ -1,6 +1,8 @@
 import {run} from '@cycle/core';
 import {makeDOMDriver, h, div} from '@cycle/dom';
 import {Observable, Subject} from 'rx';
+import {restart, restartable} from 'cycle-restart';
+
 const babel = require('babel-core');
 import ace from 'brace';
 import 'brace/mode/javascript';
@@ -48,7 +50,7 @@ function startAceEditor (code$) {
 }
 
 export default function Scratchpad (DOM, props) {
-  let sources, sinks;
+  let sources, sinks, drivers;
 
   const code$ = new Subject();
 
@@ -67,7 +69,17 @@ export default function Scratchpad (DOM, props) {
       }
     });
 
-  props.merge(code$).debounce(100).map(transformES6(error$)).forEach(({code}) => {
+  const restartEnabled$ = DOM.select('.instant-checkbox').events('change')
+    .map(ev => ev.target.checked)
+    .startWith(true);
+
+  props.merge(code$)
+    .debounce(300)
+    .map(transformES6(error$))
+    .withLatestFrom(restartEnabled$, (props, restartEnabled) => [props, restartEnabled])
+    .forEach(([{code}, restartEnabled]) => runOrRestart(code, restartEnabled))
+
+  function runOrRestart(code, restartEnabled) {
     if (sources) {
       sources.dispose();
     }
@@ -94,16 +106,22 @@ export default function Scratchpad (DOM, props) {
       error$.onNext(e);
     }
 
-    console.log('running cycle app with', code);
-
-    if (typeof context.main !== 'function') {
+    if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
       return;
     }
 
     let userApp;
 
+    if (!drivers) {
+      drivers = context.sources;
+    }
+
     try {
-      userApp = run(context.main, context.sources);
+      if (sources && restartEnabled) {
+        userApp = restart(context.main, drivers, {sources, sinks})
+      } else {
+        userApp = run(context.main, context.sources);
+      }
     } catch (e) {
       error$.onNext(e);
     }
@@ -112,7 +130,7 @@ export default function Scratchpad (DOM, props) {
       sources = userApp.sources;
       sinks = userApp.sinks;
     }
-  });
+  };
 
   return {
     DOM: props.combineLatest(error$.startWith('')).map(view)
