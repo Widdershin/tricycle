@@ -106808,8 +106808,30 @@ function Scratchpad(DOM, props) {
     }
   };
 
+  var clientWidth$ = DOM.select(':root').observable.pluck('clientWidth');
+  var mouseDown$ = DOM.select('.handler').events('mousedown');
+  var mouseUp$ = DOM.select('.tricycle').events('mouseup');
+  var mouseMove$ = DOM.select('.tricycle').events('mousemove');
+  var mouseLeave$ = DOM.select('.tricycle').events('mouseleave');
+
+  var MAX_RESULT_WIDTH = 0.9;
+  var MIN_RESULT_WIDTH = 0.1;
+
+  var windowSize$ = mouseDown$.flatMap(function (mouseDown) {
+    return mouseMove$.takeUntil(mouseUp$.merge(mouseLeave$));
+  }).combineLatest(clientWidth$.throttle(100), function (mouseDrag, clientWidth) {
+    return (clientWidth - mouseDrag.clientX) / clientWidth;
+  }).filter(function (fraction) {
+    return fraction < MAX_RESULT_WIDTH && fraction > MIN_RESULT_WIDTH;
+  }).map(function (fraction) {
+    return {
+      codeWidth: 100 * (1 - fraction) + '%',
+      resultWidth: 100 * fraction + '%'
+    };
+  });
+
   return {
-    DOM: props.combineLatest(error$.startWith('')).map(_view2.default)
+    DOM: props.merge(windowSize$).combineLatest(error$.startWith('')).map(_view2.default)
   };
 }
 
@@ -106831,7 +106853,11 @@ function scratchpadView(_ref) {
   var props = _ref2[0];
   var error = _ref2[1];
 
-  return (0, _dom.div)('.scratchpad', [(0, _dom.div)('.vim-support', [(0, _dom.div)('vim mode'), (0, _dom.input)('.vim-checkbox', { type: 'checkbox' }), (0, _dom.div)('enable cycle-restart'), (0, _dom.input)('.instant-checkbox', { type: 'checkbox', checked: true })]), (0, _dom.div)('.code', { id: 'editor', value: props.code }), (0, _dom.div)('.result-container', [(0, _dom.div)('.app'), (0, _dom.div)('.error', error.toString())])]);
+  return (0, _dom.div)('.scratchpad', [(0, _dom.div)('.vim-support', [(0, _dom.div)('vim mode'), (0, _dom.input)('.vim-checkbox', { type: 'checkbox' }), (0, _dom.div)('enable cycle-restart'), (0, _dom.input)('.instant-checkbox', { type: 'checkbox', checked: true })]), (0, _dom.div)('.code', {
+    id: 'editor',
+    value: props.code,
+    style: { width: props.codeWidth }
+  }), (0, _dom.div)('.handler'), (0, _dom.div)('.result-container', { style: { width: props.resultWidth } }, [(0, _dom.div)('.app'), (0, _dom.div)('.error', error.toString())])]);
 }
 
 },{"@cycle/dom":3}]},{},[1]);

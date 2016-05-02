@@ -132,7 +132,29 @@ export default function Scratchpad (DOM, props) {
     }
   };
 
+  const clientWidth$ = DOM.select(':root').observable.pluck('clientWidth');
+  const mouseDown$ = DOM.select('.handler').events('mousedown');
+  const mouseUp$ = DOM.select('.tricycle').events('mouseup');
+  const mouseMove$ = DOM.select('.tricycle').events('mousemove');
+  const mouseLeave$ = DOM.select('.tricycle').events('mouseleave');
+
+  const MAX_RESULT_WIDTH = 0.9;
+  const MIN_RESULT_WIDTH = 0.1;
+
+  const windowSize$ = mouseDown$
+    .flatMap(mouseDown => mouseMove$.takeUntil(mouseUp$.merge(mouseLeave$)))
+    .combineLatest(clientWidth$.throttle(100), (mouseDrag, clientWidth) =>
+      (clientWidth - mouseDrag.clientX) / clientWidth
+    )
+    .filter(fraction =>
+      fraction < MAX_RESULT_WIDTH && fraction > MIN_RESULT_WIDTH
+    )
+    .map(fraction => ({
+      codeWidth: `${100*(1 - fraction)}%`,
+      resultWidth: `${100*fraction}%`
+    }));
+
   return {
-    DOM: props.combineLatest(error$.startWith('')).map(view)
+    DOM: props.merge(windowSize$).combineLatest(error$.startWith('')).map(view)
   };
 }
