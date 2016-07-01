@@ -17,6 +17,8 @@ import es2015 from 'babel-preset-es2015';
 
 import vm from 'vm';
 
+import https from 'https';
+
 function transformES6 (error$) {
   return ({code}) => {
     try {
@@ -88,49 +90,137 @@ export default function Scratchpad (DOM, props) {
       sinks.dispose();
     }
 
-    const context = {error$, require, console};
+    // Store npm modules that have been loaded from http://wrzd.in.
+    let moduleCache = {};
 
-    const wrappedCode = `
+    // Matches for all npm modules that will need to be loaded.
+    const requireMatches = code.match(/require\(.*/g);
+
+    function runInVm (code) {
+      const context = {
+        error$: error$,
+        console: console,
+        require: (path) => {
+          return moduleCache[path];
+        }
+      };
+
+      const wrappedCode = `
+        try {
+          ${code}
+
+          error$.onNext('');
+        } catch (e) {
+          error$.onNext(e);
+        }
+      `;
+
       try {
-        ${code}
-
-        error$.onNext('');
+        vm.runInNewContext(wrappedCode, context);
       } catch (e) {
         error$.onNext(e);
       }
-    `;
 
-    try {
-      vm.runInNewContext(wrappedCode, context);
-    } catch (e) {
-      error$.onNext(e);
-    }
 
-    if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
-      return;
-    }
-
-    let userApp;
-
-    if (!drivers) {
-      drivers = context.sources;
-    }
-
-    try {
-      if (sources && restartEnabled) {
-        userApp = restart(context.main, drivers, {sources, sinks})
-      } else {
-        userApp = run(context.main, context.sources);
+      if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
+        return;
       }
-    } catch (e) {
-      error$.onNext(e);
+
+      let userApp;
+
+      if (!drivers) {
+        drivers = context.sources;
+      }
+
+      try {
+        if (sources && restartEnabled) {
+          userApp = restart(context.main, drivers, {sources, sinks})
+        } else {
+          userApp = run(context.main, context.sources);
+        }
+      } catch (e) {
+        error$.onNext(e);
+      }
+
+      if (userApp) {
+        sources = userApp.sources;
+        sinks = userApp.sinks;
+      } 
     }
 
-    if (userApp) {
-      sources = userApp.sources;
-      sinks = userApp.sinks;
+    function fetchModule (moduleName) {
+      return new Promise((resolve, reject) => {
+        const moduleNameWithScope = moduleName.replace('/', '%2F');
+        const url = 'https://wzrd.in/standalone/' + moduleNameWithScope + '@latest';
+        const req = https.get(url, (res) => {
+          let content = '';
+
+          res.on('data', (chunk) => {
+            content += chunk;
+          });
+
+          res.on('end', () => {
+            resolve(content);
+          });
+        })
+        .on('error', (err) => {
+          reject(err);
+        });
+      });
+    };
+
+    // There are npm modules to import.
+    if (requireMatches) {
+
+      // Get npm module name.
+      const moduleName$ = Observable.from(requireMatches)
+        .map((requireMatch) => {
+          const moduleName = requireMatch.split(/[']|["]/)[1];    
+          return moduleName;
+        });
+
+      // Get the module source.
+      const moduleSource$ = moduleName$
+        .map((moduleName) => {
+          return fetchModule(moduleName);
+        })
+        .concatMap((module) => {
+          return module;
+        });
+
+      // Run the module source in a separate vm.
+      const exports$ = Observable.zip(moduleName$, moduleSource$, (moduleName, moduleSource) => {
+        const context = {
+          exports: {},
+          module: {
+            exports: {}
+          }
+        };
+
+        vm.runInNewContext(moduleSource, context);
+
+        return {
+          name: moduleName,
+          module: context.module.exports
+        };
+      });
+
+       exports$.subscribe(
+        (moduleObj) => {
+          const newObj = {};
+          newObj[moduleObj.name] = moduleObj.module;
+          moduleCache = Object.assign({}, moduleCache, newObj);
+        },
+
+        (e) => error$.onNext(e),
+
+        () => runInVm(code)
+      ); 
+
+    } else {
+      runInVm(code);
     }
-  };
+ };
 
   const clientWidth$ = DOM.select(':root').observable.pluck('clientWidth');
   const mouseDown$ = DOM.select('.handler').events('mousedown');
