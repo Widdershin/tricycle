@@ -121,7 +121,6 @@ export default function Scratchpad (DOM, props) {
         error$.onNext(e);
       }
 
-
       if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
         return;
       }
@@ -145,82 +144,125 @@ export default function Scratchpad (DOM, props) {
       if (userApp) {
         sources = userApp.sources;
         sinks = userApp.sinks;
-      } 
+      }
     }
 
-    function fetchModule (moduleName) {
+    function fetchModules (moduleList) {
       return new Promise((resolve, reject) => {
-        const moduleNameWithScope = moduleName.replace('/', '%2F');
-        const url = 'https://wzrd.in/standalone/' + moduleNameWithScope + '@latest';
-        const req = https.get(url, (res) => {
+        let dependencies = moduleList.reduce((acc, moduleName) => {
+          const moduleNameWithScope = moduleName.replace('/', '%2F');
+          acc[moduleNameWithScope] = 'latest';
+
+          return acc;
+        }, {});
+
+        let postData = {
+          'options': {
+            'debug': false,
+            'standalone': true
+          },
+          'dependencies': dependencies
+        };
+
+        const options = {
+          hostname: 'wzrd.in',
+          path: '/multi',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        const req = https.request(options, (res) => {
           let content = '';
+
+          res.setEncoding('utf8');
 
           res.on('data', (chunk) => {
             content += chunk;
           });
 
           res.on('end', () => {
-            resolve(content);
+            resolve(JSON.parse(content));
           });
-        })
-        .on('error', (err) => {
-          reject(err);
         });
+
+        req.on('error', (e) => {
+          reject(e);
+        });
+
+        req.write(JSON.stringify(postData));
+        req.end();
       });
     };
 
     // There are npm modules to import.
     if (requireMatches) {
 
-      // Get npm module name.
-      const moduleName$ = Observable.from(requireMatches)
-        .map((requireMatch) => {
-          const moduleName = requireMatch.split(/[']|["]/)[1];    
-          return moduleName;
-        });
+      // Get list of required modules.
+      const requireList = requireMatches.reduce((acc, value) => {
+        const moduleName = value.split(/[']|["]/)[1];
+        acc.push(moduleName);
 
-      // Get the module source.
-      const moduleSource$ = moduleName$
-        .map((moduleName) => {
-          return fetchModule(moduleName);
+        return acc;
+      }, []);
+
+      // Get an array of all the modules source code.
+      const moduleSourceList$ = Observable.of(requireList)
+        .map((requireList) => {
+          return fetchModules(requireList);
         })
-        .concatMap((module) => {
-          return module;
+        .flatMap((moduleSourceList) => {
+          return moduleSourceList;
         });
 
-      // Run the module source in a separate vm.
-      const exports$ = Observable.zip(moduleName$, moduleSource$, (moduleName, moduleSource) => {
-        const context = {
-          exports: {},
-          module: {
-            exports: {}
-          }
-        };
+      // Take an array of module sources and run each in a separate vm.
+      // Return a stream of each module.
+      const exportsList$ = moduleSourceList$
+        .map((moduleSourceList) => {
+          return Observable.create((observer) => {
+            Object.keys(moduleSourceList).forEach((element) => {
+              let modulePackage = moduleSourceList[element]['package'];
+              let moduleBundle = moduleSourceList[element]['bundle']
 
-        vm.runInNewContext(moduleSource, context);
+              const context = {
+                exports: {},
+                module: {
+                  exports: {}
+                }
+              };
 
-        return {
-          name: moduleName,
-          module: context.module.exports
-        };
-      });
+              vm.runInNewContext(moduleBundle, context);
 
-       exports$.subscribe(
+              observer.onNext({
+                name: modulePackage['name'],
+                module: context.module.exports
+              });
+            });
+
+            observer.onCompleted();
+          });
+        });
+
+      const moduleObj$ = exportsList$
+        .flatMap((moduleObj) => {
+          return moduleObj;
+        });
+
+      // Add each module to the cache and run the code when completed.
+      moduleObj$.subscribe(
         (moduleObj) => {
           const newObj = {};
           newObj[moduleObj.name] = moduleObj.module;
           moduleCache = Object.assign({}, moduleCache, newObj);
         },
-
         (e) => error$.onNext(e),
-
         () => runInVm(code)
-      ); 
-
+      );
     } else {
       runInVm(code);
     }
- };
+  };
 
   const clientWidth$ = DOM.select(':root').observable.pluck('clientWidth');
   const mouseDown$ = DOM.select('.handler').events('mousedown');
