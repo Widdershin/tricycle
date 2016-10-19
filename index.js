@@ -1,16 +1,16 @@
-import {run} from '@cycle/core';
+import {run} from '@cycle/xstream-run';
 import {makeDOMDriver, div} from '@cycle/dom';
-import {Observable} from 'rx';
-import {restartable} from 'cycle-restart';
+import xs from 'xstream';
+// import {restartable} from 'cycle-restart';
 
 import Scratchpad from './src/scratchpad';
 
 const startingCode = `
-const Cycle = require('@cycle/core');
+const Cycle = require('@cycle/xstream-run');
 const {makeDOMDriver, div, button} = require('@cycle/dom');
 const _ = require('lodash');
-const {Observable} = require('rx');
-const {restartable} = require('cycle-restart');
+const xs = require('xstream');
+// const {restartable} = require('cycle-restart');
 
 function main ({DOM}) {
   const add$ = DOM
@@ -19,8 +19,7 @@ function main ({DOM}) {
     .map(ev => 1);
 
   const count$ = add$
-    .startWith(0)
-    .scan((total, change) => total + change)
+    .fold((total, change) => total + change, 0)
 
   return {
     DOM: count$.map(count =>
@@ -36,7 +35,8 @@ function main ({DOM}) {
 // which automatically plays back your actions when the code reloads.
 // See https://github.com/Widdershin/cycle-restart for more info
 const sources = {
-  DOM: restartable(makeDOMDriver('.app'), {pauseSinksWhileReplaying: false})
+  // DOM: restartable(makeDOMDriver('.app'), {pauseSinksWhileReplaying: false})
+  DOM: makeDOMDriver('.app')
 }
 
 // Normally you need to call Cycle.run, but Tricycle handles that for you!
@@ -46,7 +46,7 @@ const sources = {
 `;
 
 function main ({DOM}) {
-  const props = Observable.just({code: startingCode});
+  const props = xs.of({code: startingCode});
   const scratchpad = Scratchpad(DOM, props);
 
   return {

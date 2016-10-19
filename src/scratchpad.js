@@ -1,7 +1,10 @@
-import {run} from '@cycle/core';
+import {run} from '@cycle/xstream-run';
 import {makeDOMDriver, h, div} from '@cycle/dom';
-import {Observable, Subject} from 'rx';
-import {restart, restartable} from 'cycle-restart';
+import xs from 'xstream';
+import delay from 'xstream/extra/delay';
+import debounce from 'xstream/extra/debounce';
+import sampleCombine from 'xstream/extra/sampleCombine';
+// import {restart, restartable} from 'cycle-restart';
 
 const babel = require('babel-core');
 import ace from 'brace';
@@ -22,7 +25,7 @@ function transformES6 (error$) {
     try {
       return babel.transform(code, {presets: [es2015]});
     } catch (e) {
-      error$.onNext(e);
+      error$.shamefullySendNext(e);
       return {code: ''};
     }
   };
@@ -31,7 +34,7 @@ function transformES6 (error$) {
 function startAceEditor (code$) {
   function updateCode (editor) {
     return (_, ev) => {
-      code$.onNext({code: editor.getSession().getValue()});
+      code$.shamefullySendNext({code: editor.getSession().getValue()});
     };
   }
 
@@ -52,32 +55,62 @@ function startAceEditor (code$) {
 export default function Scratchpad (DOM, props) {
   let sources, sinks, drivers;
 
-  const code$ = new Subject();
+  const code$ = xs.create();
 
-  const error$ = new Subject();
+  const error$ = xs.create();
 
-  error$.forEach(console.log.bind(console));
+  error$.addListener({
+    next (err) {
+      console.log(err);
+    },
+    error (err) {
+      console.error(err);
+    },
+    complete () {}
+  });
 
-  props.delay(100).subscribe(startAceEditor(code$));
+  props.compose(delay(100)).addListener({
+    next (v) {
+      startAceEditor(code$)(v)
+    },
+    error (err) {
+      console.error(err);
+    },
+    complete () {}
+  });
 
   DOM.select('.vim-checkbox').events('change')
     .map(ev => ev.target.checked ? 'ace/keyboard/vim' : null)
     .startWith(null)
-    .forEach(keyHandler => {
-      if (window.editor) {
-        window.editor.setKeyboardHandler(keyHandler);
-      }
+    .addListener({
+      next (keyHandler) {
+        if (window.editor) {
+          window.editor.setKeyboardHandler(keyHandler);
+        }
+      },
+      error (err) {
+        console.error(err);
+      },
+      complete () {}
     });
 
   const restartEnabled$ = DOM.select('.instant-checkbox').events('change')
     .map(ev => ev.target.checked)
     .startWith(true);
 
-  props.merge(code$)
-    .debounce(300)
+  xs.merge(props, code$)
+    .compose(debounce(300))
     .map(transformES6(error$))
-    .withLatestFrom(restartEnabled$, (props, restartEnabled) => [props, restartEnabled])
-    .forEach(([{code}, restartEnabled]) => runOrRestart(code, restartEnabled))
+    .compose(sampleCombine(restartEnabled$))
+    .addListener({
+      next ([{code}, restartEnabled]) {
+        runOrRestart(code, restartEnabled)
+      },
+      error (err) {
+        console.error(err);
+      },
+      complete () {}
+    })
 
   function runOrRestart(code, restartEnabled) {
     if (sources) {
@@ -94,16 +127,16 @@ export default function Scratchpad (DOM, props) {
       try {
         ${code}
 
-        error$.onNext('');
+        error$.shamefullySendNext('');
       } catch (e) {
-        error$.onNext(e);
+        error$.shamefullySendNext(e);
       }
     `;
 
     try {
       vm.runInNewContext(wrappedCode, context);
     } catch (e) {
-      error$.onNext(e);
+      error$.shamefullySendNext(e);
     }
 
     if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
@@ -118,12 +151,12 @@ export default function Scratchpad (DOM, props) {
 
     try {
       if (sources && restartEnabled) {
-        userApp = restart(context.main, drivers, {sources, sinks})
+        // userApp = restart(context.main, drivers, {sources, sinks})
       } else {
         userApp = run(context.main, context.sources);
       }
     } catch (e) {
-      error$.onNext(e);
+      error$.shamefullySendNext(e);
     }
 
     if (userApp) {
@@ -132,7 +165,7 @@ export default function Scratchpad (DOM, props) {
     }
   };
 
-  const clientWidth$ = DOM.select(':root').observable.pluck('clientWidth');
+  const clientWidth$ = DOM.select(':root').elements().map(target => target.clientWidth);
   const mouseDown$ = DOM.select('.handler').events('mousedown');
   const mouseUp$ = DOM.select('.tricycle').events('mouseup');
   const mouseMove$ = DOM.select('.tricycle').events('mousemove');
@@ -141,9 +174,14 @@ export default function Scratchpad (DOM, props) {
   const MAX_RESULT_WIDTH = 0.9;
   const MIN_RESULT_WIDTH = 0.1;
 
-  const windowSize$ = mouseDown$
-    .flatMap(mouseDown => mouseMove$.takeUntil(mouseUp$.merge(mouseLeave$)))
-    .combineLatest(clientWidth$.throttle(100), (mouseDrag, clientWidth) =>
+  const windowSize$ = xs.combine(
+      mouseDown$
+        .map(mouseDown => mouseMove$.takeUntil(mouseUp$.merge(mouseLeave$)))
+        .flatten(),
+      // TODO: This debounce should be throttle
+      clientWidth$.compose(debounce(100))
+    )
+    .map((mouseDrag, clientWidth) =>
       (clientWidth - mouseDrag.clientX) / clientWidth
     )
     .filter(fraction =>
@@ -155,6 +193,9 @@ export default function Scratchpad (DOM, props) {
     }));
 
   return {
-    DOM: props.merge(windowSize$).combineLatest(error$.startWith('')).map(view)
+    DOM: xs.combine(
+      xs.merge(props, windowSize$),
+      error$.startWith('')
+    ).map(view)
   };
 }
