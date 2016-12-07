@@ -15,7 +15,7 @@ var _scratchpad2 = _interopRequireDefault(_scratchpad);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var startingCode = '\nconst Cycle = require(\'@cycle/xstream-run\');\nconst {makeDOMDriver, div, button} = require(\'@cycle/dom\');\nconst _ = require(\'lodash\');\nconst xs = require(\'xstream\');\n\nfunction main ({DOM}) {\n  const add$ = DOM\n    .select(\'.add\')\n    .events(\'click\')\n    .map(ev => 1);\n\n  const count$ = add$\n    .fold((total, change) => total + change, 0)\n\n  return {\n    DOM: count$.map(count =>\n      div(\'.counter\', [\n        \'Count: \' + count,\n        button(\'.add\', \'Add\')\n      ])\n    )\n  };\n}\n\nconst sources = {\n  DOM: makeDOMDriver(\'.app\')\n}\n\n// Normally you need to call Cycle.run, but Tricycle handles that for you!\n// If you want to try this out locally, just uncomment this code.\n//\n// Cycle.run(main, sources);\n';
+var startingCode = '\nimport {run} from \'@cycle/xstream-run\';\nimport {makeDOMDriver, div, button} from \'@cycle/dom\';\nimport _ from \'lodash\';\nimport xs from \'xstream\';\n\nfunction main ({DOM}) {\n  const add$ = DOM\n    .select(\'.add\')\n    .events(\'click\')\n    .map(ev => 1);\n\n  const count$ = add$\n    .fold((total, change) => total + change, 0)\n\n  return {\n    DOM: count$.map(count =>\n      div(\'.counter\', [\n        \'Count: \' + count,\n        button(\'.add\', \'Add\')\n      ])\n    )\n  };\n}\n\nconst sources = {\n  DOM: makeDOMDriver(\'.app\')\n}\n\n// Normally you need to call Cycle.run, but Tricycle handles that for you!\n// If you want to try this out locally, just uncomment this code.\n//\n// Cycle.run(main, sources);\n';
 
 function main(_ref) {
   var DOM = _ref.DOM;

@@ -5,10 +5,10 @@ import xs from 'xstream';
 import Scratchpad from './src/scratchpad';
 
 const startingCode = `
-const Cycle = require('@cycle/xstream-run');
-const {makeDOMDriver, div, button} = require('@cycle/dom');
-const _ = require('lodash');
-const xs = require('xstream');
+import {run} from '@cycle/xstream-run';
+import {makeDOMDriver, div, button} from '@cycle/dom';
+import _ from 'lodash';
+import xs from 'xstream';
 
 function main ({DOM}) {
   const add$ = DOM
