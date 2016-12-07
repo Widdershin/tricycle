@@ -5,16 +5,15 @@ export default function scratchpadView ([props, error]) {
     div('.scratchpad', [
       div('.vim-support', [
         div('vim mode'),
-        input('.vim-checkbox', {type: 'checkbox'}),
-        div('enable cycle-restart'),
-        input('.instant-checkbox', {type: 'checkbox', checked: true})
+        input('.vim-checkbox', {props: {type: 'checkbox'}}),
+        // div('enable cycle-restart'),
+        // input('.instant-checkbox', {props: {type: 'checkbox', checked: true}})
       ]),
 
-      div('.code', {
-        id: 'editor',
+      div('#editor.code', {props: {
         value: props.code,
         style: {width: props.codeWidth}
-      }),
+      }}),
       div('.handler'),
       div('.result-container', {style: {width: props.resultWidth}}, [
         div('.app'),
