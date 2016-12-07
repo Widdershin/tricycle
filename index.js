@@ -1,7 +1,6 @@
 import {run} from '@cycle/xstream-run';
 import {makeDOMDriver, div} from '@cycle/dom';
 import xs from 'xstream';
-// import {restartable} from 'cycle-restart';
 
 import Scratchpad from './src/scratchpad';
 
@@ -10,7 +9,6 @@ const Cycle = require('@cycle/xstream-run');
 const {makeDOMDriver, div, button} = require('@cycle/dom');
 const _ = require('lodash');
 const xs = require('xstream');
-// const {restartable} = require('cycle-restart');
 
 function main ({DOM}) {
   const add$ = DOM
@@ -31,11 +29,7 @@ function main ({DOM}) {
   };
 }
 
-// This looks a little different than normal. It's to enable support for cycle-restart,
-// which automatically plays back your actions when the code reloads.
-// See https://github.com/Widdershin/cycle-restart for more info
 const sources = {
-  // DOM: restartable(makeDOMDriver('.app'), {pauseSinksWhileReplaying: false})
   DOM: makeDOMDriver('.app')
 }
 
