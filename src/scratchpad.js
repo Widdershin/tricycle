@@ -21,6 +21,8 @@ import es2015 from 'babel-preset-es2015';
 
 import vm from 'vm';
 
+import https from 'https';
+
 function transformES6 (error$) {
   return ({code}) => {
     try {
@@ -122,47 +124,173 @@ export default function Scratchpad (DOM, props) {
       sinks.dispose();
     }
 
-    const context = {error$, require, console};
+    // Store npm modules that have been loaded from http://wrzd.in.
+    let moduleCache = {};
 
-    const wrappedCode = `
+    // Matches for all npm modules that will need to be loaded.
+    const requireMatches = code.match(/require\(.*/g);
+
+    function runInVm (code) {
+      const context = {
+        error$: error$,
+        console: console,
+        require: (path) => {
+          return moduleCache[path];
+        }
+      };
+
+      const wrappedCode = `
+        try {
+          ${code}
+
+          error$.onNext('');
+        } catch (e) {
+          error$.onNext(e);
+        }
+      `;
+
       try {
-        ${code}
-
-        error$.shamefullySendNext('');
+        vm.runInNewContext(wrappedCode, context);
       } catch (e) {
         error$.shamefullySendNext(e);
       }
-    `;
 
-    try {
-      vm.runInNewContext(wrappedCode, context);
-    } catch (e) {
-      error$.shamefullySendNext(e);
-    }
-
-    if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
-      return;
-    }
-
-    let userApp;
-
-    if (!drivers) {
-      drivers = context.sources;
-    }
-
-    try {
-      if (sources && restartEnabled) {
-        // userApp = restart(context.main, drivers, {sources, sinks})
-      } else {
-        userApp = run(context.main, context.sources);
+      if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
+        return;
       }
-    } catch (e) {
-      error$.shamefullySendNext(e);
+
+      let userApp;
+
+      if (!drivers) {
+        drivers = context.sources;
+      }
+
+      try {
+        if (sources && restartEnabled) {
+          userApp = restart(context.main, drivers, {sources, sinks})
+        } else {
+          userApp = run(context.main, context.sources);
+        }
+      } catch (e) {
+        error$.onNext(e);
+      }
+
+      if (userApp) {
+        sources = userApp.sources;
+        sinks = userApp.sinks;
+      }
     }
 
-    if (userApp) {
-      sources = userApp.sources;
-      sinks = userApp.sinks;
+    function fetchModules (moduleList) {
+      return new Promise((resolve, reject) => {
+        let dependencies = moduleList.reduce((acc, moduleName) => {
+          const moduleNameWithScope = moduleName.replace('/', '%2F');
+          acc[moduleNameWithScope] = 'latest';
+
+          return acc;
+        }, {});
+
+        let postData = {
+          'options': {
+            'debug': false,
+            'standalone': true
+          },
+          'dependencies': dependencies
+        };
+
+        const options = {
+          hostname: 'wzrd.in',
+          path: '/multi',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        const req = https.request(options, (res) => {
+          let content = '';
+
+          res.setEncoding('utf8');
+
+          res.on('data', (chunk) => {
+            content += chunk;
+          });
+
+          res.on('end', () => {
+            resolve(JSON.parse(content));
+          });
+        });
+
+        req.on('error', (e) => {
+          reject(e);
+        });
+
+        req.write(JSON.stringify(postData));
+        req.end();
+      });
+    };
+
+    // There are npm modules to import.
+    if (requireMatches) {
+
+      // Get list of required modules.
+      const requireList = requireMatches.reduce((acc, value) => {
+        const moduleName = value.split(/[']|["]/)[1];
+        acc.push(moduleName);
+
+        return acc;
+      }, []);
+
+      // Get an array of all the modules source code.
+      const moduleSourceList$ = xs.of(requireList)
+        .map((requireList) => {
+          return xs.fromPromise(fetchModules(requireList));
+        })
+        .flatten()
+
+      // Take an array of module sources and run each in a separate vm.
+      // Return a stream of each module.
+      const exportsList$ = moduleSourceList$
+        .map((moduleSourceList) => {
+          return xs.create((listener) => {
+            Object.keys(moduleSourceList).forEach((element) => {
+              let modulePackage = moduleSourceList[element]['package'];
+              let moduleBundle = moduleSourceList[element]['bundle']
+
+              const context = {
+                exports: {},
+                module: {
+                  exports: {}
+                }
+              };
+
+              vm.runInNewContext(moduleBundle, context);
+
+              listener.next({
+                name: modulePackage['name'],
+                module: context.module.exports
+              });
+            });
+
+            listener.complete();
+          });
+        });
+
+      const moduleObj$ = exportsList$
+        .flatten()
+
+      // Add each module to the cache and run the code when completed.
+      moduleObj$.addListener({
+        next: (moduleObj) => {
+          const newObj = {};
+          newObj[moduleObj.name] = moduleObj.module;
+          moduleCache = Object.assign({}, moduleCache, newObj);
+        },
+        error: (e) => error$.onNext(e),
+        complete: () => runInVm(code)
+      });
+    } else {
+      runInVm(code);
     }
   };
 
