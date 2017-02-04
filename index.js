@@ -17,7 +17,7 @@ function main ({DOM}) {
     .map(ev => 1);
 
   const count$ = add$
-    .fold((total, change) => total + change, 0)
+    .fold((total, change) => total + change, 0);
 
   return {
     DOM: count$.map(count =>
