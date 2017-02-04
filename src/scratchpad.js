@@ -1,5 +1,6 @@
 import {run} from '@cycle/xstream-run';
 import {makeDOMDriver, h, div} from '@cycle/dom';
+import isolate from '@cycle/isolate';
 import xs from 'xstream';
 import delay from 'xstream/extra/delay';
 import debounce from 'xstream/extra/debounce';
