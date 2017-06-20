@@ -4,7 +4,7 @@ git fetch cyclejs
 
 git checkout gh-pages
 
-git merge cyclejs master --no-commit
+git merge cyclejs/master --no-commit
 
 npm install
 
