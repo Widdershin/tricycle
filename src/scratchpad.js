@@ -1,4 +1,4 @@
-import {run} from '@cycle/xstream-run';
+import {run} from '@cycle/run';
 import {makeDOMDriver, h, div} from '@cycle/dom';
 import isolate from '@cycle/isolate';
 import xs from 'xstream';
@@ -140,21 +140,21 @@ export default function Scratchpad (DOM, props) {
       error$.shamefullySendNext(e);
     }
 
-    if (typeof context.main !== 'function' || typeof context.sources !== 'object') {
+    if (typeof context.main !== 'function' || typeof context.drivers !== 'object') {
       return;
     }
 
     let userApp;
 
     if (!drivers) {
-      drivers = context.sources;
+      drivers = context.drivers;
     }
 
     try {
       if (sources && restartEnabled) {
         // userApp = restart(context.main, drivers, {sources, sinks})
       } else {
-        userApp = run(context.main, context.sources);
+        userApp = run(context.main, context.drivers);
       }
     } catch (e) {
       error$.shamefullySendNext(e);
